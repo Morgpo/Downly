@@ -15,6 +15,7 @@ def build():
         'src/downly.py',  # Main application script
         '--add-data', f'src/utils/resource_path.py{separator}utils',  # Include resource_path
         '--add-data', f'src/assets/icon.ico{separator}assets',  # Include icon
+        '--add-data', f'src/assets/logo.png{separator}assets',  # Include logo
         # Add ffmpeg binary to the distribution
         '--add-binary', f'.venv/Scripts/ffmpeg.exe{separator}.',  # Include ffmpeg.exe in root directory
     ]

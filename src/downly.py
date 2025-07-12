@@ -49,8 +49,9 @@ class CustomWindow(tk.Tk):
         icon_path = resource_path("assets/icon.ico")
         self.iconbitmap(icon_path)
         self.wm_iconbitmap(icon_path)
-        self.resizable(False, False)
+        self.resizable(True, True)
         self.geometry("900x900")
+        self.minsize(600, 700)  # Set minimum size to prevent UI from becoming unusable
         self.configure(bg="#1e1e1e")
 
         # Configure modern styling
@@ -62,9 +63,35 @@ class CustomWindow(tk.Tk):
         self.main_frame = ttk.Frame(self, padding="20", style="Main.TFrame")
         self.main_frame.pack(fill=tk.BOTH, expand=True)
 
-        # Title
-        self.title_label = ttk.Label(self.main_frame, text="Downly", style="Title.TLabel")
-        self.title_label.pack(pady=(0, 20))
+        # Logo and Title Section
+        try:
+            logo_path = resource_path("assets/logo.png")
+            self.logo_image = tk.PhotoImage(file=logo_path)
+            
+            # Create a frame to hold the logo-title layout
+            self.header_frame = tk.Frame(self.main_frame, bg="#1e1e1e")
+            self.header_frame.pack(pady=(0, 20), fill=tk.X)
+            
+            # Configure the header frame to center the title properly
+            self.header_frame.grid_columnconfigure(1, weight=1)  # Make center column expandable
+            
+            # Left logo
+            self.logo_left = tk.Label(self.header_frame, image=self.logo_image, bg="#1e1e1e")
+            self.logo_left.grid(row=0, column=0, padx=(0, 20), sticky="w")
+            
+            # Center title
+            self.title_label = ttk.Label(self.header_frame, text="Downly", style="Title.TLabel")
+            self.title_label.grid(row=0, column=1, sticky="")
+            
+            # Right logo
+            self.logo_right = tk.Label(self.header_frame, image=self.logo_image, bg="#1e1e1e")
+            self.logo_right.grid(row=0, column=2, padx=(20, 0), sticky="e")
+            
+        except Exception as e:
+            # Fallback to text if logo fails to load
+            print(f"Could not load logo: {e}")
+            self.title_label = ttk.Label(self.main_frame, text="Downly", style="Title.TLabel")
+            self.title_label.pack(pady=(0, 20))
 
         # URL Entry Section
         self.url_frame = ttk.LabelFrame(self.main_frame, text="YouTube URL", padding="15", style="Modern.TLabelframe")
