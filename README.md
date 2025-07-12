@@ -1,9 +1,6 @@
 # Developer Checklist:
 ## Known Bugs
-- Specifying an end time makes the download take exponentially longer than downloading the whole video
-   - Same resolution, bitrate, etc
-   - Video Duration is correct
-   - Console output seems good, but it takes 6:35 to download 10 minutes; 16 minutes (full vid) took only 2 minutes
+- N/A
 
 ## Major Features to Add
 - N/A

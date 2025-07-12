@@ -210,7 +210,6 @@ class CustomWindow(tk.Tk):
         self.animation_state = 0
         self.animation_timer = None
         self.is_mp3_finishing = False  # Track MP3 finishing state
-        self.progress_increment_timer = None  # Add timer for incremental progress
 
     def configure_styles(self):
         """Configure modern styling for the application"""
@@ -441,45 +440,58 @@ class CustomWindow(tk.Tk):
                 }
                 quality_value = audio_quality_map[self.audio_quality_var.get()]
                 command.extend(["--audio-quality", quality_value])
-        else:
-            # Handle video format with quality selection
-            video_format = self.format_var.get()
-            quality_selection = self.quality_var.get()
-            
-            if quality_selection == "Highest Video Quality":
-                # Use best available quality
-                command.extend(["-f", "bestvideo+bestaudio/best"])
-            else:
-                # Extract height from quality (e.g., "1080p" -> "1080")
-                height = quality_selection.replace('p', '')
-                # Fix: Improved format string for more reliable quality selection
-                format_str = f"bestvideo[height<={height}]+bestaudio/best[height<={height}]"
-                command.extend(["-f", format_str])
-            
-            # Add audio quality for video downloads if specified
-            if self.audio_quality_var.get() != "Highest Audio Quality":
-                # Map display value to internal yt-dlp audio quality value
-                audio_quality_map = {
-                    "Highest Audio Quality": "0",
-                    "256kbps": "2",
-                    "192kbps": "5",
-                    "128kbps": "7",
-                    "64kbps": "9"
-                }
-                quality_value = audio_quality_map[self.audio_quality_var.get()]
-                command.extend(["--audio-quality", quality_value])
-            
-            # Set the merge output format based on user selection
-            if self.format_var.get() == "mp4":
-                command.extend(["--merge-output-format", "mp4"])
-            elif self.format_var.get() == "webm":
-                command.extend(["--merge-output-format", "webm"])
         
-        # Add time interval options using yt-dlp's download sections
+        # Add time interval options using smart format selection for better performance
         if start_seconds is not None or end_seconds is not None:
+            # For time-sectioned downloads, use a more efficient approach
+            # But prioritize formats with compatible audio codecs
+            if not is_audio_download:
+                # For video downloads with time sections, prefer formats with AAC audio
+                video_format = self.format_var.get()
+                quality_selection = self.quality_var.get()
+                
+                if quality_selection == "Highest Video Quality":
+                    # Prefer single file with AAC audio, fallback to separate streams for compatibility
+                    if video_format == "mp4":
+                        command.extend(["-f", "best[ext=mp4][acodec^=mp4a]/bestvideo[ext=mp4]+bestaudio[ext=m4a]/bestvideo+bestaudio/best"])
+                    elif video_format == "webm":
+                        command.extend(["-f", "best[ext=webm][acodec^=vorbis]/bestvideo[ext=webm]+bestaudio[ext=webm]/bestvideo+bestaudio/best"])
+                    else:
+                        command.extend(["-f", "bestvideo+bestaudio/best"])
+                else:
+                    # Extract height from quality
+                    height = quality_selection.replace('p', '')
+                    # Prefer compatible audio codecs with quality constraint
+                    if video_format == "mp4":
+                        format_str = f"best[height<={height}][ext=mp4][acodec^=mp4a]/bestvideo[height<={height}][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<={height}]+bestaudio/best[height<={height}]"
+                    elif video_format == "webm":
+                        format_str = f"best[height<={height}][ext=webm][acodec^=vorbis]/bestvideo[height<={height}][ext=webm]+bestaudio[ext=webm]/bestvideo[height<={height}]+bestaudio/best[height<={height}]"
+                    else:
+                        format_str = f"bestvideo[height<={height}]+bestaudio/best[height<={height}]"
+                    command.extend(["-f", format_str])
+                
+                # Set the merge output format to ensure proper codec
+                if video_format == "mp4":
+                    command.extend(["--merge-output-format", "mp4"])
+                elif video_format == "webm":
+                    command.extend(["--merge-output-format", "webm"])
+                
+                # Add audio quality for video downloads if specified
+                if self.audio_quality_var.get() != "Highest Audio Quality":
+                    # Map display value to internal yt-dlp audio quality value
+                    audio_quality_map = {
+                        "Highest Audio Quality": "0",
+                        "256kbps": "2",
+                        "192kbps": "5",
+                        "128kbps": "7",
+                        "64kbps": "9"
+                    }
+                    quality_value = audio_quality_map[self.audio_quality_var.get()]
+                    command.extend(["--audio-quality", quality_value])
+            
+            # Add download sections
             if start_seconds is not None and end_seconds is not None:
                 # Both start and end times specified
-                # Fix: Format time values as HH:MM:SS for better compatibility
                 start_formatted = self.format_seconds_to_time(start_seconds)
                 end_formatted = self.format_seconds_to_time(end_seconds)
                 command.extend(["--download-sections", f"*{start_formatted}-{end_formatted}"])
@@ -491,6 +503,51 @@ class CustomWindow(tk.Tk):
                 # Only end time specified - download from beginning to end time
                 end_formatted = self.format_seconds_to_time(end_seconds)
                 command.extend(["--download-sections", f"*0-{end_formatted}"])
+        else:
+            # For full downloads, use codec-aware format selection for better compatibility
+            if not is_audio_download:
+                # Handle video format with quality selection for full downloads
+                video_format = self.format_var.get()
+                quality_selection = self.quality_var.get()
+                
+                if quality_selection == "Highest Video Quality":
+                    # Prefer formats with compatible audio codecs even for full downloads
+                    if video_format == "mp4":
+                        command.extend(["-f", "bestvideo[ext=mp4]+bestaudio[ext=m4a]/bestvideo+bestaudio/best"])
+                    elif video_format == "webm":
+                        command.extend(["-f", "bestvideo[ext=webm]+bestaudio[ext=webm]/bestvideo+bestaudio/best"])
+                    else:
+                        command.extend(["-f", "bestvideo+bestaudio/best"])
+                else:
+                    # Extract height from quality (e.g., "1080p" -> "1080")
+                    height = quality_selection.replace('p', '')
+                    # Prefer compatible codecs with quality constraint
+                    if video_format == "mp4":
+                        format_str = f"bestvideo[height<={height}][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<={height}]+bestaudio/best[height<={height}]"
+                    elif video_format == "webm":
+                        format_str = f"bestvideo[height<={height}][ext=webm]+bestaudio[ext=webm]/bestvideo[height<={height}]+bestaudio/best[height<={height}]"
+                    else:
+                        format_str = f"bestvideo[height<={height}]+bestaudio/best[height<={height}]"
+                    command.extend(["-f", format_str])
+                
+                # Set the merge output format based on user selection
+                if self.format_var.get() == "mp4":
+                    command.extend(["--merge-output-format", "mp4"])
+                elif self.format_var.get() == "webm":
+                    command.extend(["--merge-output-format", "webm"])
+                
+                # Add audio quality for video downloads if specified
+                if self.audio_quality_var.get() != "Highest Audio Quality":
+                    # Map display value to internal yt-dlp audio quality value
+                    audio_quality_map = {
+                        "Highest Audio Quality": "0",
+                        "256kbps": "2",
+                        "192kbps": "5",
+                        "128kbps": "7",
+                        "64kbps": "9"
+                    }
+                    quality_value = audio_quality_map[self.audio_quality_var.get()]
+                    command.extend(["--audio-quality", quality_value])
             
         # Add optional settings
         if self.filename_var.get():
@@ -523,42 +580,13 @@ class CustomWindow(tk.Tk):
             self.after(0, lambda: self.progress_label.config(text="Starting download..."))
                 
             # Read output line by line to track progress
-                
-            # Add flag to track download state for time-sectioned downloads
-            download_started = False
-            download_completed = False
-            incremental_progress_started = False  # Track if incremental progress has started
             
             for line in process.stdout:
                 line = line.strip()
                 # Debug the output lines to help diagnose progress issues
                 print(f"yt-dlp output: {line}")
                 
-                # When downloading time sections, use simplified checkpoints
-                if start_seconds is not None or end_seconds is not None:
-                    # First checkpoint: Downloading - 33%
-                    if not download_started and ("[download]" in line or "Downloading" in line):
-                        download_started = True
-                        self.after(0, lambda: self.progress_label.config(text="Downloading..."))
-                        self.after(0, lambda: self.progress_bar.configure(value=33))
-                    
-                    # Second checkpoint: Preparing File - 50%
-                    elif download_started and not download_completed and (
-                        "100%" in line or "Merging" in line or "ffmpeg" in line.lower() or 
-                        line.startswith("frame=") or "Destination" in line
-                    ):
-                        download_completed = True
-                        self.after(0, lambda: self.progress_label.config(text="Preparing File..."))
-                        self.after(0, lambda: self.progress_bar.configure(value=50))
-                        
-                        # Start incremental progress after reaching "Preparing File" stage
-                        if not incremental_progress_started:
-                            incremental_progress_started = True
-                            self.start_incremental_progress(50)
-                    
-                    continue  # Skip normal progress parsing for time sections
-                
-                # Normal progress parsing for non-sectioned downloads
+                # Parse download progress
                 if '[download]' in line:
                     # Parse progress from yt-dlp output
                     try:
@@ -588,15 +616,21 @@ class CustomWindow(tk.Tk):
                         # Log progress parsing errors
                         print(f"Progress parsing error: {e} on line: {line}")
                 
-                # Also check for frame progress lines which indicate post-processing
-                elif line.startswith("frame="):
-                    # This indicates post-processing, update progress to show this
-                    self.after(0, lambda: self.progress_label.config(text="Processing video..."))
+                # Check for post-processing stages
+                elif line.startswith("frame=") or "ffmpeg" in line.lower():
+                    # This indicates post-processing (including time trimming)
+                    if start_seconds is not None or end_seconds is not None:
+                        self.after(0, lambda: self.progress_label.config(text="Trimming video..."))
+                    else:
+                        self.after(0, lambda: self.progress_label.config(text="Processing video..."))
                     # Keep progress bar at a high value during processing
-                    self.after(0, lambda: self.progress_bar.configure(value=85))
+                    self.after(0, lambda: self.progress_bar.configure(value=90))
+                
+                # Check for merging stages
+                elif "Merging" in line or "merger" in line.lower():
+                    self.after(0, lambda: self.progress_label.config(text="Merging audio and video..."))
+                    self.after(0, lambda: self.progress_bar.configure(value=95))
 
-            # Cancel any incremental progress timer when the process completes
-            self.cancel_incremental_progress()
             
             process.wait()
             if process.returncode == 0:
@@ -605,48 +639,14 @@ class CustomWindow(tk.Tk):
                 self.after(0, lambda: self.download_error(f"Download failed with return code {process.returncode}"))
                 
         except subprocess.CalledProcessError as e:
-            # Cancel incremental progress on error
-            self.cancel_incremental_progress()
             # Schedule UI update on main thread
             self.after(0, lambda: self.download_error(f"Download failed: {e}"))
         except FileNotFoundError:
-            # Cancel incremental progress on error
-            self.cancel_incremental_progress()
             # Schedule UI update on main thread
             self.after(0, lambda: self.download_error("yt-dlp not found. Please ensure yt-dlp is properly installed."))
         except Exception as e:
-            # Cancel incremental progress on error
-            self.cancel_incremental_progress()
             # Handle any other exceptions
             self.after(0, lambda: self.download_error(f"Unexpected error: {str(e)}"))
-
-    def start_incremental_progress(self, start_value):
-        """Start incremental progress updates that increase by 1% every 1-2 seconds"""
-        import random
-        
-        # Store the current progress value
-        self.current_progress = start_value
-        
-        def update_progress():
-            """Update progress bar by 1%"""
-            # Increment progress by 1%, but don't exceed 99%
-            self.current_progress = min(self.current_progress + 1, 99)
-            self.after(0, lambda: self.progress_bar.configure(value=self.current_progress))
-            
-            # Continue if we haven't reached 99% yet
-            if self.current_progress < 99:
-                # Schedule next update with random delay between 1-2 seconds
-                delay = random.randint(1000, 2000)  # 1-2 seconds in milliseconds
-                self.progress_increment_timer = self.after(delay, update_progress)
-        
-        # Start the first progress update
-        update_progress()
-
-    def cancel_incremental_progress(self):
-        """Cancel any ongoing incremental progress updates"""
-        if self.progress_increment_timer:
-            self.after_cancel(self.progress_increment_timer)
-            self.progress_increment_timer = None
 
     def update_progress(self, percent, status_line, is_audio=False):
         """Update progress bar and label (runs on main thread)"""
@@ -682,9 +682,6 @@ class CustomWindow(tk.Tk):
 
     def download_success(self):
         """Handle successful download (runs on main thread)"""
-        # Cancel any incremental progress
-        self.cancel_incremental_progress()
-        
         self.progress_bar['value'] = 100
         self.progress_label.config(text="Download completed!")
         self.is_mp3_finishing = False  # Reset finishing state
@@ -693,9 +690,6 @@ class CustomWindow(tk.Tk):
 
     def download_error(self, error_message):
         """Handle download error (runs on main thread)"""
-        # Cancel any incremental progress
-        self.cancel_incremental_progress()
-        
         self.progress_label.config(text="Download failed")
         self.is_mp3_finishing = False  # Reset finishing state
         self.hide_loading()
