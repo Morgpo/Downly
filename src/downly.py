@@ -11,6 +11,7 @@
 
 import tkinter as tk
 from tkinter import ttk
+from tkinter import filedialog
 from tkinter import messagebox
 import subprocess
 import threading
@@ -39,7 +40,19 @@ YOUTUBE_PATTERNS = [
 	r'(?:https?://)?(?:m\.)?youtube\.com/watch\?v=[\w-]+'
 ]
 
-
+# Preset configurations for simplified user experience
+PRESETS = {
+	"Video": {
+		"High": {"format": "webm", "video_quality": "Highest Video Quality", "audio_quality": "Highest Audio Quality"},
+		"Standard": {"format": "webm", "video_quality": "720p", "audio_quality": "192kbps"},
+		"Low": {"format": "webm", "video_quality": "240p", "audio_quality": "64kbps"}
+	},
+	"Audio": {
+		"High": {"format": "mp3", "video_quality": "---", "audio_quality": "Highest Audio Quality"},
+		"Standard": {"format": "mp3", "video_quality": "---", "audio_quality": "192kbps"},
+		"Low": {"format": "mp3", "video_quality": "---", "audio_quality": "64kbps"}
+	}
+}
 
 #
 # ===== Helper Functions ===== #
@@ -85,8 +98,6 @@ def get_ytdlp_path():
 	# Try system PATH
 	return "yt-dlp"
 
-
-
 #
 # ===== Main Application Window ===== #
 #
@@ -98,7 +109,7 @@ class CustomWindow(tk.Tk):
 
 		# ===== Window Configuration ===== #
 		self.resizable(False, False)
-		self.geometry("900x900")
+		self.geometry("600x860")
 		self.minsize(600, 700)
 		self.configure(bg="#1e1e1e")
 
@@ -153,78 +164,175 @@ class CustomWindow(tk.Tk):
 		self.url_entry.insert(0, "Paste YouTube link here...")
 		self.url_entry.pack(fill=tk.X)
 
-		# ===== Required Settings Section ===== #
-		self.required_frame = ttk.LabelFrame(self.main_frame, text="Required Settings",
-										   padding="15", style="Modern.TLabelframe")
+		# ===== Download Settings Section ===== #
+		self.required_frame = ttk.LabelFrame(self.main_frame, text="Download Settings",  padding="15", style="Modern.TLabelframe")
 		self.required_frame.pack(fill=tk.X, pady=(0, 15))
 
-		# Format selection
-		ttk.Label(self.required_frame, text="Format:", style="SectionLabel.TLabel").pack(anchor="w")
+		# Create two-column layout for presets and custom settings
+		self.settings_container = ttk.Frame(self.required_frame, style="Main.TFrame")
+		self.settings_container.pack(fill=tk.X)
+
+		# Configure columns with equal width
+		self.settings_container.grid_columnconfigure(0, weight=1)  # Equal weight for both columns
+		self.settings_container.grid_columnconfigure(1, weight=1)  # Equal weight for both columns
+
+		# ===== Left Side (Presets) ===== #
+		self.preset_frame = ttk.Frame(self.settings_container, style="Main.TFrame")
+		self.preset_frame.grid(row=0, column=0, sticky="nsew", padx=(0, 15))  # Consistent padding
+
+		ttk.Label(self.preset_frame, text="Presets", style="SubtitleLabel.TLabel").pack(anchor="w", pady=(0, 10))
+		ttk.Label(self.preset_frame, text="Format:", style="SmallLabel.TLabel").pack(anchor="w", pady=(0, 5))
+		self.preset_format_var = tk.StringVar(value="Video")
+		self.preset_format_dropdown = ttk.Combobox(self.preset_frame, textvariable=self.preset_format_var, style="Modern.TCombobox")
+		self.preset_format_dropdown["values"] = ("Video", "Audio", "Custom")
+		self.preset_format_dropdown.pack(fill=tk.X, pady=(0, 15), ipady=3)  # Consistent padding
+
+		ttk.Label(self.preset_frame, text="Quality:", style="SmallLabel.TLabel").pack(anchor="w", pady=(0, 5))
+		self.preset_quality_var = tk.StringVar(value="High")
+		self.preset_quality_dropdown = ttk.Combobox(self.preset_frame, textvariable=self.preset_quality_var, style="Modern.TCombobox")
+		self.preset_quality_dropdown["values"] = ("High", "Standard", "Low")
+		self.preset_quality_dropdown.pack(fill=tk.X, pady=(0, 0), ipady=3)  # Consistent padding
+
+		# ===== Right Side (Custom) ===== #
+		self.custom_frame = ttk.Frame(self.settings_container, style="Main.TFrame")
+		self.custom_frame.grid(row=0, column=1, sticky="nsew", padx=(15, 0))  # Consistent padding
+
+		ttk.Label(self.custom_frame, text="Custom Settings", style="SubtitleLabel.TLabel").pack(anchor="w", pady=(0, 10))
+		ttk.Label(self.custom_frame, text="File Type:", style="SmallLabel.TLabel").pack(anchor="w", pady=(0, 5))
 		self.format_var = tk.StringVar(value="mp4")
-		self.format_dropdown = ttk.Combobox(self.required_frame, textvariable=self.format_var,
-										  style="Modern.TCombobox")
+		self.format_dropdown = ttk.Combobox(self.custom_frame, textvariable=self.format_var, style="Modern.TCombobox")
 		self.format_dropdown["values"] = ("mp4", "webm", "mp3", "m4a")
-		self.format_dropdown.pack(fill=tk.X, pady=(5, 15))
+		self.format_dropdown.pack(fill=tk.X, pady=(0, 15), ipady=3)
 
-		# Video quality selection
-		ttk.Label(self.required_frame, text="Video Quality:", style="SectionLabel.TLabel").pack(anchor="w")
+		ttk.Label(self.custom_frame, text="Video Quality:", style="SmallLabel.TLabel").pack(anchor="w", pady=(0, 5))
 		self.quality_var = tk.StringVar(value="Highest Video Quality")
-		self.quality_dropdown = ttk.Combobox(self.required_frame, textvariable=self.quality_var,
-										   style="Modern.TCombobox")
+		self.quality_dropdown = ttk.Combobox(self.custom_frame, textvariable=self.quality_var, style="Modern.TCombobox")
 		self.quality_dropdown["values"] = ("Highest Video Quality", "2160p","1440p", "1080p", "720p", "480p", "360p", "240p", "144p")
-		self.quality_dropdown.pack(fill=tk.X, pady=(5, 15))
+		self.quality_dropdown.pack(fill=tk.X, pady=(0, 15), ipady=3)
 
-		# Audio quality selection
-		ttk.Label(self.required_frame, text="Audio Quality:", style="SectionLabel.TLabel").pack(anchor="w")
+		ttk.Label(self.custom_frame, text="Audio Quality:", style="SmallLabel.TLabel").pack(anchor="w", pady=(0, 5))
 		self.audio_quality_var = tk.StringVar(value="Highest Audio Quality")
-		self.audio_quality_dropdown = ttk.Combobox(self.required_frame, textvariable=self.audio_quality_var,
-												 style="Modern.TCombobox")
+		self.audio_quality_dropdown = ttk.Combobox(self.custom_frame, textvariable=self.audio_quality_var, style="Modern.TCombobox")
 		self.audio_quality_dropdown["values"] = ("Highest Audio Quality", "256kbps", "192kbps", "128kbps", "64kbps")
-		self.audio_quality_dropdown.pack(fill=tk.X, pady=(5, 0))
+		self.audio_quality_dropdown.pack(fill=tk.X, pady=(0, 0), ipady=3)
 
 		# ===== Optional Settings Section ===== #
-		self.optional_frame = ttk.LabelFrame(self.main_frame, text="Optional Settings",
-										   padding="15", style="Modern.TLabelframe")
+		self.optional_frame = ttk.LabelFrame(self.main_frame, text="Optional Settings", padding="15", style="Modern.TLabelframe")
 		self.optional_frame.pack(fill=tk.X, pady=(0, 15))
 
+		# Create two-column layout for optional settings
+		self.optional_container = ttk.Frame(self.optional_frame, style="Main.TFrame")
+		self.optional_container.pack(fill=tk.X)
+
+		# Configure columns to be equal width
+		self.optional_container.grid_columnconfigure(0, weight=1)
+		self.optional_container.grid_columnconfigure(1, weight=1)
+
+		# ===== Left Side (Custom Filename) ===== #
+		self.left_optional_frame = ttk.Frame(self.optional_container, style="Main.TFrame")
+		self.left_optional_frame.grid(row=0, column=0, sticky="nsew", padx=(0, 10))
+
 		# Custom filename
-		ttk.Label(self.optional_frame, text="Custom Filename:", style="SectionLabel.TLabel").pack(anchor="w")
+		ttk.Label(self.left_optional_frame, text="Custom Filename:", style="SectionLabel.TLabel").pack(anchor="w")
 		self.filename_var = tk.StringVar()
-		self.filename_entry = ttk.Entry(self.optional_frame, textvariable=self.filename_var,
-									  style="Modern.TEntry")
+		self.filename_entry = ttk.Entry(self.left_optional_frame, textvariable=self.filename_var, style="Modern.TEntry")
 		self.filename_entry.pack(fill=tk.X, pady=(5, 15))
 
-		# Time interval section
-		ttk.Label(self.optional_frame, text="Time Interval:", style="SectionLabel.TLabel").pack(anchor="w")
+		# ===== Right Side (Time Interval) ===== #
+		self.right_optional_frame = ttk.Frame(self.optional_container, style="Main.TFrame")
+		self.right_optional_frame.grid(row=0, column=1, sticky="nsew", padx=(10, 0))
 
-		self.time_frame = ttk.Frame(self.optional_frame, style="Main.TFrame")
+		# Time interval section
+		ttk.Label(self.right_optional_frame, text="Time Interval:", style="SectionLabel.TLabel").pack(anchor="w")
+
+		self.time_frame = ttk.Frame(self.right_optional_frame, style="Main.TFrame")
 		self.time_frame.pack(fill=tk.X, pady=(5, 15))
 
 		ttk.Label(self.time_frame, text="From:", style="SmallLabel.TLabel").pack(side=tk.LEFT)
 		self.start_time_var = tk.StringVar()
-		self.start_time_entry = ttk.Entry(self.time_frame, textvariable=self.start_time_var,
-										style="Small.TEntry", width=12)
+		self.start_time_entry = ttk.Entry(self.time_frame, textvariable=self.start_time_var, style="Small.TEntry", width=15)
 		self.start_time_entry.pack(side=tk.LEFT, padx=(5, 10))
-		self.start_time_entry.insert(0, "00:00:00")
+		self.start_time_entry.insert(0, "HH:MM:SS")
 
 		ttk.Label(self.time_frame, text="To:", style="SmallLabel.TLabel").pack(side=tk.LEFT)
 		self.end_time_var = tk.StringVar()
-		self.end_time_entry = ttk.Entry(self.time_frame, textvariable=self.end_time_var,
-									  style="Small.TEntry", width=12)
+		self.end_time_entry = ttk.Entry(self.time_frame, textvariable=self.end_time_var, style="Small.TEntry", width=15)
 		self.end_time_entry.pack(side=tk.LEFT, padx=(5, 0))
-		self.end_time_entry.insert(0, "")
+		self.end_time_entry.insert(0, "HH:MM:SS")
 
-		ttk.Label(self.optional_frame, text="Format: HH:MM:SS; MM:SS; SS (leave 'To' empty for full video)",
-				 style="HintLabel.TLabel").pack(anchor="w", pady=(0, 15))
+		# ===== Download Location (Full Width) ===== #
+		self.location_full_frame = ttk.Frame(self.optional_container, style="Main.TFrame")
+		self.location_full_frame.grid(row=1, column=0, columnspan=2, sticky="nsew", pady=(15, 0))
 
-		# Download location
-		ttk.Label(self.optional_frame, text="Download Location:", style="SectionLabel.TLabel").pack(anchor="w")
+		# Download location with browse button
+		ttk.Label(self.location_full_frame, text="Download Location:", style="SectionLabel.TLabel").pack(anchor="w")
+		self.location_frame = ttk.Frame(self.location_full_frame, style="Main.TFrame")
+		self.location_frame.pack(fill=tk.X, pady=(5, 15))
+
 		self.location_var = tk.StringVar(value=os.path.join(os.path.expanduser("~"), "Downloads"))
-		self.location_entry = ttk.Entry(self.optional_frame, textvariable=self.location_var,
-									  style="Modern.TEntry")
-		self.location_entry.pack(fill=tk.X, pady=(5, 0))
+		self.location_entry = ttk.Entry(self.location_frame, textvariable=self.location_var, style="Modern.TEntry")
+		self.location_entry.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 10))
+
+		self.browse_button = ttk.Button(self.location_frame, text="Browse...", command=self.browse_download_location, style="Browse.TButton", width=10)
+		self.browse_button.pack(side=tk.RIGHT)
+
+		# ===== Checkboxes (Side by Side) ===== #
+		self.checkboxes_frame = ttk.Frame(self.location_full_frame, style="Main.TFrame")
+		self.checkboxes_frame.pack(fill=tk.X)
+
+		# Metadata checkbox
+		self.metadata_var = tk.BooleanVar(value=False)
+		self.metadata_checkbox = ttk.Checkbutton(self.checkboxes_frame, text="Download metadata", variable=self.metadata_var, style="Modern.TCheckbutton")
+		self.metadata_checkbox.pack(side=tk.LEFT, padx=(0, 20))
+
+		# Subtitles checkbox
+		self.subtitles_var = tk.BooleanVar(value=False)
+		self.subtitles_checkbox = ttk.Checkbutton(self.checkboxes_frame, text="Download subtitles", variable=self.subtitles_var, style="Modern.TCheckbutton")
+		self.subtitles_checkbox.pack(side=tk.LEFT)
 
 		# ===== Dropdown Event Handlers ===== #
+		# Preset system handlers
+		def on_preset_format_change(event):
+			preset_format = self.preset_format_var.get()
+			if preset_format == "Custom":
+				# Custom mode: disable presets, enable custom controls
+				self.preset_quality_var.set("---")
+				self.preset_quality_dropdown.state(["disabled"])
+				
+				# Enable all custom controls
+				self.format_dropdown.state(["!disabled"])
+				self.quality_dropdown.state(["!disabled"])
+				self.audio_quality_dropdown.state(["!disabled"])
+				
+				# Reset custom controls to default values
+				self.format_var.set("mp4")
+				self.quality_var.set("Highest Video Quality")
+				self.audio_quality_var.set("Highest Audio Quality")
+			else:
+				# Preset mode: enable quality selector, disable custom controls
+				self.preset_quality_dropdown.state(["!disabled"])
+				if self.preset_quality_var.get() == "---":
+					self.preset_quality_var.set("High")
+				
+				# Disable custom controls (but keep them visible for feedback)
+				self.format_dropdown.state(["disabled"])
+				self.quality_dropdown.state(["disabled"])
+				self.audio_quality_dropdown.state(["disabled"])
+				
+				# Apply preset settings to show what will be used
+				self.apply_preset()
+				
+		def on_preset_quality_change(event):
+			if self.preset_format_var.get() != "Custom":
+				self.apply_preset()
+
+		def on_custom_change(event):
+			# Prevent custom changes when in preset mode
+			if self.preset_format_var.get() != "Custom":
+				# Revert the change and reapply preset
+				self.apply_preset()
+				return
+
 		# Update video quality dropdown based on format selection
 		def on_format_change(event):
 			if self.format_var.get() in ["mp3", "m4a"]:
@@ -232,15 +340,33 @@ class CustomWindow(tk.Tk):
 				self.quality_dropdown.state(["disabled"])
 			else:
 				self.quality_dropdown["values"] = ("Highest Video Quality", "2160p", "1440p", "1080p", "720p", "480p", "360p", "240p", "144p")
-				self.quality_dropdown.set("Highest Video Quality")
-				self.quality_dropdown.state(["!disabled"])
+				if self.quality_dropdown.get() == "---":
+					self.quality_dropdown.set("Highest Video Quality")
+				# Only enable if in custom mode
+				if self.preset_format_var.get() == "Custom":
+					self.quality_dropdown.state(["!disabled"])
+			on_custom_change(event)
 
+		# Bind events
+		self.preset_format_dropdown.bind("<<ComboboxSelected>>", on_preset_format_change)
+		self.preset_quality_dropdown.bind("<<ComboboxSelected>>", on_preset_quality_change)
 		self.format_dropdown.bind("<<ComboboxSelected>>", on_format_change)
+		self.quality_dropdown.bind("<<ComboboxSelected>>", on_custom_change)
+		self.audio_quality_dropdown.bind("<<ComboboxSelected>>", on_custom_change)
 
 		# Configure dropdown properties and fix selection highlighting issues
+		self.preset_format_dropdown.state(["readonly"])
+		self.preset_quality_dropdown.state(["readonly"])
 		self.format_dropdown.state(["readonly"])
 		self.quality_dropdown.state(["readonly"])
 		self.audio_quality_dropdown.state(["readonly"])
+
+		# Apply initial preset (starts in Video/High mode)
+		self.apply_preset()
+		# Set initial state: preset mode with custom controls disabled
+		self.format_dropdown.state(["disabled"])
+		self.quality_dropdown.state(["disabled"])
+		self.audio_quality_dropdown.state(["disabled"])
 
 		def on_focus_out(event):
 			# Handle focus out events to clear selection
@@ -257,28 +383,59 @@ class CustomWindow(tk.Tk):
 			combo.bind('<Button-1>', on_button_release)
 			combo.bind('<ButtonRelease-1>', on_button_release)
 
+		# ===== URL Entry Placeholder Handling ===== #
+		def on_url_focus_in(event):
+			# Clear placeholder text when user clicks in the field
+			widget = event.widget
+			if widget.get() == "Paste YouTube link here...":
+				widget.delete(0, tk.END)
+
+		def on_url_focus_out(event):
+			# Restore placeholder text if field is empty
+			widget = event.widget
+			if not widget.get().strip():
+				widget.insert(0, "Paste YouTube link here...")
+
+		# Bind URL entry focus events
+		self.url_entry.bind('<FocusIn>', on_url_focus_in)
+		self.url_entry.bind('<FocusOut>', on_url_focus_out)
+
+		# ===== Time Entry Placeholder Handling ===== #
+		def on_time_focus_in(event):
+			# Clear placeholder text when user clicks in the field
+			widget = event.widget
+			if widget.get() == "HH:MM:SS":
+				widget.delete(0, tk.END)
+
+		def on_time_focus_out(event):
+			# Restore placeholder text if field is empty
+			widget = event.widget
+			if not widget.get().strip():
+				widget.insert(0, "HH:MM:SS")
+
+		# Bind time entry focus events
+		self.start_time_entry.bind('<FocusIn>', on_time_focus_in)
+		self.start_time_entry.bind('<FocusOut>', on_time_focus_out)
+		self.end_time_entry.bind('<FocusIn>', on_time_focus_in)
+		self.end_time_entry.bind('<FocusOut>', on_time_focus_out)
+
 		# ===== Download Controls and Progress ===== #
 		self.button_frame = ttk.Frame(self.main_frame, style="Main.TFrame")
 		self.button_frame.pack(pady=20)
 		
-		self.button = ttk.Button(self.button_frame, text="Download",
-							   command=self.ytdlp_download, style="Download.TButton", width=15)
+		self.button = ttk.Button(self.button_frame, text="Download", command=self.ytdlp_download, style="Download.TButton", width=15)
 		self.button.pack(side=tk.LEFT, padx=(0, 10), ipady=10)
-		
-		self.cancel_button = ttk.Button(self.button_frame, text="Cancel",
-									  command=self.cancel_download, style="Cancel.TButton", width=15)
+		self.cancel_button = ttk.Button(self.button_frame, text="Cancel", command=self.cancel_download, style="Cancel.TButton", width=15)
 		self.cancel_button.pack(side=tk.LEFT, ipady=10)
 		self.cancel_button.config(state="disabled")
 
 		self.progress_frame = ttk.Frame(self.main_frame, style="Main.TFrame")
 		self.progress_frame.pack(fill=tk.X, pady=(0, 10))
 
-		self.progress_label = ttk.Label(self.progress_frame, text="Ready to download",
-									   style="ProgressLabel.TLabel")
+		self.progress_label = ttk.Label(self.progress_frame, text="Ready to download", style="ProgressLabel.TLabel")
 		self.progress_label.pack()
 
-		self.progress_bar = ttk.Progressbar(self.progress_frame, mode='determinate',
-										  style="Modern.Horizontal.TProgressbar")
+		self.progress_bar = ttk.Progressbar(self.progress_frame, mode='determinate', style="Modern.Horizontal.TProgressbar")
 		self.progress_bar.pack(fill=tk.X, pady=(5, 0))
 		self.progress_bar['value'] = 0
 
@@ -332,6 +489,7 @@ class CustomWindow(tk.Tk):
 		self.style.configure("Modern.TLabelframe.Label", background=primary_bg, foreground=accent_blue, font=heading_font)
 
 		# Label styles
+		self.style.configure("SubtitleLabel.TLabel", background=primary_bg, foreground=text_primary, font=heading_font)
 		self.style.configure("SectionLabel.TLabel", background=primary_bg, foreground=text_primary, font=normal_font)
 		self.style.configure("SmallLabel.TLabel", background=primary_bg, foreground=text_secondary, font=small_font)
 		self.style.configure("HintLabel.TLabel", background=primary_bg, foreground=text_hint, font=tiny_font)
@@ -340,10 +498,12 @@ class CustomWindow(tk.Tk):
 		# Entry styling
 		self.style.configure("Modern.TEntry", fieldbackground=surface_bg, foreground=text_primary, borderwidth=1, bordercolor=border_color, focuscolor=border_accent, insertcolor=text_primary, font=normal_font)
 		self.style.configure("Small.TEntry", fieldbackground=surface_bg, foreground=text_primary, borderwidth=1, bordercolor=border_color, focuscolor=border_accent, insertcolor=text_primary, font=small_font)
+		self.style.configure("Valid.TEntry", fieldbackground=surface_bg, foreground=text_primary, borderwidth=1, bordercolor=accent_green, focuscolor=accent_green, insertcolor=text_primary, font=normal_font)
+		self.style.configure("Invalid.TEntry", fieldbackground=surface_bg, foreground=text_primary, borderwidth=1, bordercolor=accent_red, focuscolor=accent_red, insertcolor=text_primary, font=normal_font)
 
 		# Combobox styling
 		self.style.configure("Modern.TCombobox", fieldbackground=surface_bg, foreground=text_primary, borderwidth=1, bordercolor=border_color, focuscolor=border_accent, arrowcolor=text_secondary, background=primary_bg, selectbackground=surface_bg, selectforeground=text_primary, font=normal_font)
-		self.style.map("Modern.TCombobox", selectbackground=[("focus", surface_bg), ("!focus", surface_bg)], selectforeground=[("focus", text_primary), ("!focus", text_primary)], fieldbackground=[("readonly", surface_bg), ("focus", surface_bg)], bordercolor=[("focus", border_accent), ("!focus", border_color)], focuscolor=[("focus", "none"), ("!focus", "none")])
+		self.style.map("Modern.TCombobox", selectbackground=[("focus", surface_bg), ("!focus", surface_bg)], selectforeground=[("focus", text_primary), ("!focus", text_primary)], fieldbackground=[("readonly", surface_bg), ("focus", surface_bg), ("disabled", "#3a3a3a")], bordercolor=[("focus", border_accent), ("!focus", border_color), ("disabled", "#555555")], focuscolor=[("focus", "none"), ("!focus", "none")], foreground=[("disabled", text_hint)], arrowcolor=[("disabled", "#666666")])
 
 		# Configure dropdown listbox styling
 		self.option_add('*TCombobox*Listbox.selectBackground', surface_bg)
@@ -356,7 +516,13 @@ class CustomWindow(tk.Tk):
 		self.style.map("Download.TButton", background=[("active", accent_green_hover), ("pressed", accent_green_pressed)], foreground=[("active", text_primary), ("pressed", text_primary)])
 		self.style.configure("Cancel.TButton", font=button_font, foreground=text_primary, background=accent_red, borderwidth=0, focuscolor="none")
 		self.style.map("Cancel.TButton", background=[("active", accent_red_hover), ("pressed", accent_red_pressed), ("disabled", "#666666")], foreground=[("active", text_primary), ("pressed", text_primary), ("disabled", "#999999")])
+		self.style.configure("Browse.TButton", font=("Arial", 10), foreground=text_primary, background=accent_blue, borderwidth=0, focuscolor="none")
+		self.style.map("Browse.TButton", background=[("active", "#e73c7e"), ("pressed", "#d63384")], foreground=[("active", text_primary), ("pressed", text_primary)])
 		self.style.configure("Modern.Horizontal.TProgressbar", background=accent_blue, troughcolor=surface_bg, borderwidth=1, lightcolor=accent_blue, darkcolor=accent_blue)
+
+		# Checkbutton styling
+		self.style.configure("Modern.TCheckbutton", background=primary_bg, foreground=text_primary, focuscolor="none", font=normal_font)
+		self.style.map("Modern.TCheckbutton", background=[("active", primary_bg), ("pressed", primary_bg)], foreground=[("active", text_primary), ("pressed", text_primary)], indicatorcolor=[("selected", accent_blue), ("!selected", surface_bg)], focuscolor=[("focus", "none"), ("!focus", "none")])
 
 	#
 	# ===== Audio Quality and Format String Generation ===== #
@@ -415,6 +581,12 @@ class CustomWindow(tk.Tk):
 	def ytdlp_download(self):
 		# Main download handler - validates URL and initiates download process
 		url = self.url_entry.get().strip()
+		
+		# Check if URL is empty or still contains placeholder text
+		if not url or url == "Paste YouTube link here...":
+			messagebox.showerror("Missing URL", "Please enter a YouTube URL before downloading.")
+			return
+		
 		is_valid_youtube = any(re.match(pattern, url, re.IGNORECASE) for pattern in YOUTUBE_PATTERNS)
 
 		if not is_valid_youtube:
@@ -557,16 +729,18 @@ class CustomWindow(tk.Tk):
 		start_seconds = None
 		end_seconds = None
 
-		if start_time and start_time != "00:00:00":
+		# Check if start time is set and not the default placeholder
+		if start_time and start_time not in ["", "HH:MM:SS", "00:00:00"]:
 			start_seconds = self.validate_time_format(start_time)
 			if start_seconds is False:
-				self.after(0, lambda: self.download_error("Invalid start time format. Use HH:MM:SS, MM:SS, or SS"))
+				self.after(0, lambda: self.download_error("Invalid start time format. Use HH:MM:SS (e.g., 01:30:00), MM:SS (e.g., 90:00), or SS (e.g., 5400)"))
 				return
 
-		if end_time:
+		# Check if end time is set and not the default placeholder
+		if end_time and end_time not in ["", "HH:MM:SS"]:
 			end_seconds = self.validate_time_format(end_time)
 			if end_seconds is False:
-				self.after(0, lambda: self.download_error("Invalid end time format. Use HH:MM:SS, MM:SS, or SS"))
+				self.after(0, lambda: self.download_error("Invalid end time format. Use HH:MM:SS (e.g., 02:45:30), MM:SS (e.g., 165:30), or SS (e.g., 9930)"))
 				return
 
 			if start_seconds is not None and end_seconds <= start_seconds:
@@ -608,6 +782,29 @@ class CustomWindow(tk.Tk):
 			"--concurrent-fragments", "4",
 			"--buffer-size", "16K"
 		]
+
+		# Add metadata options based on checkbox
+		if self.metadata_var.get():
+			command.extend([
+				"--write-info-json",
+				"--write-description",
+				"--write-thumbnail",
+				"--embed-metadata"
+			])
+		else:
+			command.extend([
+				"--no-write-info-json",
+				"--no-write-description", 
+				"--no-write-thumbnail"
+			])
+
+		# Add subtitle options based on checkbox
+		if self.subtitles_var.get():
+			command.extend([
+				"--write-subs",
+				"--write-auto-subs",
+				"--embed-subs"
+			])
 
 		# Configure format options based on download type
 		is_audio_download = self.format_var.get() in ["mp3", "m4a"]
@@ -794,28 +991,34 @@ class CustomWindow(tk.Tk):
 
 	def validate_time_format(self, time_str):
 		# Validate and convert time string to seconds (supports HH:MM:SS, MM:SS, or SS formats)
-		if not time_str or time_str.strip() == "":
+		if not time_str or time_str.strip() == "" or time_str.strip() == "HH:MM:SS":
 			return None
 
 		time_str = time_str.strip()
 
 		patterns = [
-			r'^(\d{1,2}):(\d{2}):(\d{2})$',  # H:MM:SS
+			r'^(\d{1,2}):(\d{2}):(\d{2})$',  # H:MM:SS or HH:MM:SS
 			r'^(\d{1,2}):(\d{2})$',          # MM:SS
-			r'^(\d+)$'                       # SS
+			r'^(\d+)$'                       # SS only
 		]
 
 		for pattern in patterns:
 			match = re.match(pattern, time_str)
 			if match:
 				groups = match.groups()
-				if len(groups) == 3:  # H:MM:SS
+				if len(groups) == 3:  # H:MM:SS or HH:MM:SS
 					hours, minutes, seconds = map(int, groups)
+					# Validate ranges
+					if minutes >= 60 or seconds >= 60:
+						return False
 					return hours * 3600 + minutes * 60 + seconds
 				elif len(groups) == 2:  # MM:SS
 					minutes, seconds = map(int, groups)
+					# Validate ranges
+					if seconds >= 60:
+						return False
 					return minutes * 60 + seconds
-				else:  # SS
+				else:  # SS only
 					return int(groups[0])
 
 		return False
@@ -832,12 +1035,47 @@ class CustomWindow(tk.Tk):
 		translation_table = str.maketrans('', '', invalid_chars)
 		return filename.translate(translation_table).strip()
 
+	def apply_preset(self):
+		# Apply preset configuration to custom controls
+		preset_format = self.preset_format_var.get()
+		preset_quality = self.preset_quality_var.get()
+		
+		if preset_format == "Custom":
+			return
+			
+		preset_config = PRESETS.get(preset_format, {}).get(preset_quality, {})
+		
+		if preset_config:
+			# Update custom controls to show what the preset will use
+			self.format_var.set(preset_config["format"])
+			self.quality_var.set(preset_config["video_quality"])
+			self.audio_quality_var.set(preset_config["audio_quality"])
+			
+			# Update dropdown states based on format (but they remain disabled in preset mode)
+			if preset_config["format"] in ["mp3", "m4a"]:
+				self.quality_var.set("---")
+			
+			# Custom controls are disabled in preset mode, so they show the values but can't be changed
+
+	def browse_download_location(self):
+		# Open file dialog to browse for download location
+		initial_dir = self.location_var.get()
+		if not os.path.exists(initial_dir):
+			initial_dir = os.path.expanduser("~")
+			
+		folder_selected = filedialog.askdirectory(
+			title="Select Download Location",
+			initialdir=initial_dir
+		)
+		
+		if folder_selected:
+			self.location_var.set(folder_selected)
+
 	def on_closing(self):
 		# Handle application shutdown
 		if self.is_downloading:
 			self.cancel_download()
 		self.destroy()
-
 
 #
 # ===== Application Entry Point ===== #

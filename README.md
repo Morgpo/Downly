@@ -1,19 +1,33 @@
-# Developer Checklist:
-## Known Bugs
-- N/A
+# Downly - YouTube Downloader
 
-## Major Features to Add
-- N/A
+A simple, elegant YouTube downloader built with Python, yt-dlp, and tkinter. Download videos and audio with customizable quality settings.
 
-## Minor Features to Add
-- Replace Title with an image
-   - Maybe a play on the logo
+## Features
+- Download YouTube videos in multiple formats (MP4, WebM, MP3, M4A)
+- Quality selection for both video and audio
+- Time interval downloads (clips)
+- Custom filename support
+- Dark theme UI
+- Progress tracking with cancel functionality
 
-# Notes:
-- You can run the program without building the application, just activate the `./venv/` and `python ./src/downly.py`
-- There is no percentage for downloading a section of the video - this is an issue with yt-dlp's console logging when passing the flag that specifies downloading a certain portion 
-   - It does not show the percentage or the ETA, it show what time in the video is currently being converted which is different than what it usually does
-- Run the build script from the main project folder
-- Run the setup script from the setup folder
+## Installation & Usage
+- **Standalone**: Run `python ./build_scripts/build.py` to create `./dist/downly.exe`
+- **Development**: Run `python ./src/downly.py` after activating the virtual environment
 
-- `ffmpeg` and `yt-dlp` should be grouped into the application when building, but that needs to be double checked
+*Note: ffmpeg and yt-dlp are bundled - no separate installation required.*
+
+---
+
+## Developer Checklist
+
+### Low Priority / Polish
+- [ ] **Tooltips** for settings explanations
+
+## Known Issues
+- **Time interval downloads**: No progress percentage due to yt-dlp logging limitations
+- **Format compatibility**: Some quality/format combinations may not be available for all videos
+-**Cross-platform capabilities**: This program was developed for Windows 11. It is not guaranteed to work on other platforms
+
+## Technical Notes
+- Uses yt-dlp for downloading and ffmpeg for processing
+- PyInstaller for standalone executable creation
