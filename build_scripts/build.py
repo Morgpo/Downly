@@ -1,9 +1,17 @@
 import subprocess
+import os
 
 def build():
+        # Get the directory of this script
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        project_root = os.path.dirname(script_dir)
+        
+        # Use the virtual environment's PyInstaller
+        pyinstaller_path = os.path.join(project_root, '.venv', 'Scripts', 'pyinstaller.exe')
+        
         # Define the command to run PyInstaller
         command = [
-                'pyinstaller',
+                pyinstaller_path,
                 # Specify the PyInstaller options
                 '--onefile',
                 '--windowed',

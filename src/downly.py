@@ -95,8 +95,20 @@ def get_ytdlp_path():
 	if os.path.exists(dev_ytdlp):
 		return dev_ytdlp
 
-	# Try system PATH
-	return "yt-dlp"
+	# Try to find yt-dlp in various subdirectories
+	for subdir in [".", "bin", "tools", "yt-dlp"]:
+		possible_path = resource_path(os.path.join(subdir, "yt-dlp.exe"))
+		if os.path.exists(possible_path):
+			return possible_path
+
+	# Try system PATH by checking if yt-dlp command exists
+	try:
+		subprocess.run(["yt-dlp", "--version"], capture_output=True, check=True)
+		return "yt-dlp"
+	except (subprocess.CalledProcessError, FileNotFoundError):
+		pass
+
+	return None
 
 #
 # ===== Main Application Window ===== #
@@ -723,6 +735,20 @@ class CustomWindow(tk.Tk):
 		ffmpeg_path = get_ffmpeg_path()
 		ytdlp_path = get_ytdlp_path()
 
+		# Check if required executables are available
+		if ytdlp_path is None:
+			self.after(0, lambda: self.download_error("yt-dlp executable not found. Please ensure the application is properly installed."))
+			return
+
+		# Only check if ytdlp_path is a file path (not a command name)
+		if ytdlp_path != "yt-dlp" and not os.path.exists(ytdlp_path):
+			self.after(0, lambda: self.download_error("yt-dlp executable not found. Please ensure the application is properly installed."))
+			return
+
+		if ffmpeg_path is None or not os.path.exists(ffmpeg_path):
+			self.after(0, lambda: self.download_error("ffmpeg executable not found. Please ensure the application is properly installed."))
+			return
+
 		# Time interval validation and conversion
 		start_time = self.start_time_var.get().strip()
 		end_time = self.end_time_var.get().strip()
@@ -751,6 +777,7 @@ class CustomWindow(tk.Tk):
 		command = [
 			ytdlp_path, 
 			"-P", downloads_folder,
+			"--ffmpeg-location", ffmpeg_path,
 			"--progress",
 			"--no-part",
 			"--no-overwrites",
