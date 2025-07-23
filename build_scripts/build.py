@@ -13,7 +13,7 @@ def build():
         command = [
                 pyinstaller_path,
                 # Specify the PyInstaller options
-                '--onefile',
+                '--onedir',
                 '--windowed',
                 '--icon=src/assets/icon.ico',
                 'src/downly.py',

@@ -11,7 +11,10 @@ A simple, elegant YouTube downloader built with Python, yt-dlp, and tkinter. Dow
 - Progress tracking with cancel functionality
 
 ## Installation & Usage
-- **Standalone**: Run `python ./build_scripts/build.py` to create `./dist/downly.exe`
+- **Standalone**: Run `python ./build_scripts/build.py` to create a distributable directory at `./dist/downly/`
+  - The main executable will be at `./dist/downly/downly.exe`
+  - All dependencies (ffmpeg, yt-dlp) are bundled in the directory
+  - Distribute the entire `downly` folder to end users
 - **Development**: Run `python ./src/downly.py` after activating the virtual environment
 
 *Note: ffmpeg and yt-dlp are bundled - no separate installation required.*
@@ -30,4 +33,6 @@ A simple, elegant YouTube downloader built with Python, yt-dlp, and tkinter. Dow
 
 ## Technical Notes
 - Uses yt-dlp for downloading and ffmpeg for processing
-- PyInstaller for standalone executable creation
+- PyInstaller for standalone executable creation (directory-based distribution)
+- Executable and dependencies are bundled in a single directory for easy distribution
+- Path resolution works in both development and bundled environments

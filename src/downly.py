@@ -61,36 +61,73 @@ PRESETS = {
 def resource_path(relative_path):
 	# Get absolute path to resource, handling both development and PyInstaller environments
 	try:
+		# PyInstaller creates a temp folder and stores path in _MEIPASS
 		base_path = sys._MEIPASS
 	except Exception:
-		base_path = os.path.abspath(".")
+		# Development environment - use the src directory as base for assets
+		if relative_path.startswith("assets/"):
+			base_path = os.path.dirname(os.path.abspath(__file__))
+		else:
+			base_path = os.path.abspath(".")
 	return os.path.join(base_path, relative_path)
 
 def get_ffmpeg_path():
 	# Locate ffmpeg executable in various potential locations (bundled, dev environment, system)
+	
+	# First, try PyInstaller bundled location (same directory as executable)
 	bundled_ffmpeg = resource_path("ffmpeg.exe")
-
 	if os.path.exists(bundled_ffmpeg):
 		return bundled_ffmpeg
+	
+	# Try relative to the executable directory (for onedir builds)
+	try:
+		if hasattr(sys, '_MEIPASS'):
+			# In PyInstaller bundle, check the main directory
+			exe_dir_ffmpeg = os.path.join(sys._MEIPASS, "ffmpeg.exe")
+			if os.path.exists(exe_dir_ffmpeg):
+				return exe_dir_ffmpeg
+	except Exception:
+		pass
 
+	# Development environment - check virtual environment
 	dev_ffmpeg = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".venv", "Scripts", "ffmpeg.exe")
 	if os.path.exists(dev_ffmpeg):
 		return dev_ffmpeg
 
+	# Try various subdirectories as fallback
 	for subdir in [".", "bin", "tools", "ffmpeg"]:
 		possible_path = resource_path(os.path.join(subdir, "ffmpeg.exe"))
 		if os.path.exists(possible_path):
 			return possible_path
 
+	# Try system PATH by checking if ffmpeg command exists
+	try:
+		subprocess.run(["ffmpeg", "-version"], capture_output=True, check=True)
+		return "ffmpeg"
+	except (subprocess.CalledProcessError, FileNotFoundError):
+		pass
+
 	return None
 
 def get_ytdlp_path():
 	# Locate yt-dlp executable in various potential locations (bundled, dev environment, system)
+	
+	# First, try PyInstaller bundled location (same directory as executable)
 	bundled_ytdlp = resource_path("yt-dlp.exe")
-
 	if os.path.exists(bundled_ytdlp):
 		return bundled_ytdlp
+	
+	# Try relative to the executable directory (for onedir builds)
+	try:
+		if hasattr(sys, '_MEIPASS'):
+			# In PyInstaller bundle, check the main directory
+			exe_dir_ytdlp = os.path.join(sys._MEIPASS, "yt-dlp.exe")
+			if os.path.exists(exe_dir_ytdlp):
+				return exe_dir_ytdlp
+	except Exception:
+		pass
 
+	# Development environment - check virtual environment
 	dev_ytdlp = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".venv", "Scripts", "yt-dlp.exe")
 	if os.path.exists(dev_ytdlp):
 		return dev_ytdlp
