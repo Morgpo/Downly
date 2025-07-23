@@ -15,6 +15,7 @@ def build():
                 # Specify the PyInstaller options
                 '--onedir',
                 '--windowed',
+                '--noconfirm',
                 '--icon=src/assets/icon.ico',
                 'src/downly.py',
                 # Add additional data files and binaries
