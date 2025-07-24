@@ -1,5 +1,6 @@
 /.venv/
 /build/
 /dist/
+/installer_output/
 
 downly.spec
