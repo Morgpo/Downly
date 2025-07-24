@@ -9,12 +9,13 @@ A simple, elegant YouTube downloader built with Python, yt-dlp, and tkinter. Dow
 - Custom filename support
 - Dark theme UI
 - Progress tracking with cancel functionality
+- Able to download subtitles and metadata
 
 ## Installation & Usage
 - **Standalone**: Run `python ./build_scripts/build.py` to create a distributable directory at `./dist/downly/`
   - The main executable will be at `./dist/downly/downly.exe`
   - All dependencies (ffmpeg, yt-dlp) are bundled in the directory
-  - Distribute the entire `downly` folder to end users
+  - Use Inno Setup to create the installer by running `ISCC downly_installer.iss` in the `./installer/` directory
 - **Development**: Run `python ./src/downly.py` after activating the virtual environment
 
 *Note: ffmpeg and yt-dlp are bundled - no separate installation required.*
@@ -29,10 +30,10 @@ A simple, elegant YouTube downloader built with Python, yt-dlp, and tkinter. Dow
 ## Known Issues
 - **Time interval downloads**: No progress percentage due to yt-dlp logging limitations
 - **Format compatibility**: Some quality/format combinations may not be available for all videos
--**Cross-platform capabilities**: This program was developed for Windows 11. It is not guaranteed to work on other platforms
+- **Cross-platform capabilities**: This program was developed for Windows 11. It is not guaranteed to work on other platforms
 
 ## Technical Notes
 - Uses yt-dlp for downloading and ffmpeg for processing
-- PyInstaller for standalone executable creation (directory-based distribution)
-- Executable and dependencies are bundled in a single directory for easy distribution
-- Path resolution works in both development and bundled environments
+- PyInstaller for standalone executable creation
+- Inno Setup for installer creation
+- All dependencies are bundled (ffmpeg and yt-dlp) in the installer. Dependencies DO NOT need to be installed seperately on your machine
