@@ -572,10 +572,13 @@ class CustomWindow(tk.Tk):
 			command.extend(["--audio-quality", quality_value])
 
 	def get_time_section_format_string(self, video_format, quality_selection):
-		# Generate optimized format string for time-sectioned downloads with codec compatibility
+		# Generate optimized format string for time-sectioned downloads with aggressive MP4 preference for faster ffmpeg processing
+		# MP4 format allows ffmpeg to use stream copying (-c copy) when trimming, avoiding re-encoding
 		if quality_selection == "Highest Video Quality":
 			if video_format == "mp4":
-				return "best[ext=mp4][acodec^=mp4a]/bestvideo[ext=mp4]+bestaudio[ext=m4a]/bestvideo+bestaudio/best"
+				# Ultra-aggressive MP4-only format selection - will fail rather than fall back to other formats
+				# This ensures we get MP4 which can be trimmed with stream copying for maximum speed
+				return "best[ext=mp4][vcodec^=avc]/best[ext=mp4]/bestvideo[ext=mp4][vcodec^=avc]+bestaudio[ext=m4a]/bestvideo[ext=mp4]+bestaudio[ext=m4a]"
 			elif video_format == "webm":
 				return "best[ext=webm][acodec^=vorbis]/bestvideo[ext=webm]+bestaudio[ext=webm]/bestvideo+bestaudio/best"
 			else:
@@ -583,7 +586,8 @@ class CustomWindow(tk.Tk):
 		else:
 			height = quality_selection.replace('p', '')
 			if video_format == "mp4":
-				return f"best[height<={height}][ext=mp4][acodec^=mp4a]/bestvideo[height<={height}][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<={height}]+bestaudio/best[height<={height}]"
+				# Ultra-aggressive MP4-only format selection at specified quality - will fail rather than fall back to other formats
+				return f"best[height<={height}][ext=mp4][vcodec^=avc]/best[height<={height}][ext=mp4]/bestvideo[height<={height}][ext=mp4][vcodec^=avc]+bestaudio[ext=m4a]/bestvideo[height<={height}][ext=mp4]+bestaudio[ext=m4a]"
 			elif video_format == "webm":
 				return f"best[height<={height}][ext=webm][acodec^=vorbis]/bestvideo[height<={height}][ext=webm]+bestaudio[ext=webm]/bestvideo[height<={height}]+bestaudio/best[height<={height}]"
 			else:
@@ -780,14 +784,14 @@ class CustomWindow(tk.Tk):
 		if start_time and start_time not in ["", "HH:MM:SS", "00:00:00"]:
 			start_seconds = self.validate_time_format(start_time)
 			if start_seconds is False:
-				self.after(0, lambda: self.download_error("Invalid start time format. Use HH:MM:SS (e.g., 01:30:00), MM:SS (e.g., 90:00), or SS (e.g., 5400)"))
+				self.after(0, lambda: self.download_error("Invalid start time format. Use HH:MM:SS (e.g., 01:30:00), MM:SS (e.g., 90:00), or SS (e.g., 54)"))
 				return
 
 		# Check if end time is set and not the default placeholder
 		if end_time and end_time not in ["", "HH:MM:SS"]:
 			end_seconds = self.validate_time_format(end_time)
 			if end_seconds is False:
-				self.after(0, lambda: self.download_error("Invalid end time format. Use HH:MM:SS (e.g., 02:45:30), MM:SS (e.g., 165:30), or SS (e.g., 9930)"))
+				self.after(0, lambda: self.download_error("Invalid end time format. Use HH:MM:SS (e.g., 02:45:30), MM:SS (e.g., 15:30), or SS (e.g., 30)"))
 				return
 
 			if start_seconds is not None and end_seconds <= start_seconds:
@@ -819,7 +823,6 @@ class CustomWindow(tk.Tk):
 			"--abort-on-unavailable-fragment",
 			
 			# Format selection safety
-			"--prefer-free-formats",
 			"--check-formats",
 			
 			# Security and safety
@@ -858,22 +861,27 @@ class CustomWindow(tk.Tk):
 		is_audio_download = self.format_var.get() in ["mp3", "m4a"]
 		audio_format = self.format_var.get()
 
-		if is_audio_download:
-			command.extend(["-f", "bestaudio/best", "--extract-audio", "--audio-format", audio_format])
-			self.add_audio_quality_option(command)
-
 		# Handle time-sectioned downloads with optimized format selection
 		if start_seconds is not None or end_seconds is not None:
-			if not is_audio_download:
+			if is_audio_download:
+				# For audio with time trimming, prefer M4A/AAC source for faster processing
+				# M4A can be trimmed faster than WebM/Opus with ffmpeg
+				command.extend(["-f", "bestaudio[ext=m4a]/bestaudio[acodec^=mp4a]/bestaudio[container^=mp4]/bestaudio/best"])
+				command.extend(["--extract-audio", "--audio-format", audio_format])
+				self.add_audio_quality_option(command)
+			else:
 				video_format = self.format_var.get()
 				quality_selection = self.quality_var.get()
-				format_str = self.get_time_section_format_string(video_format, quality_selection)
+				
+				# Force MP4 format for time-sectioned downloads to enable faster ffmpeg stream copying
+				# This allows ffmpeg to use -c copy instead of re-encoding when trimming
+				force_mp4_format = "mp4"
+				format_str = self.get_time_section_format_string(force_mp4_format, quality_selection)
 				command.extend(["-f", format_str])
 
-				if video_format == "mp4":
-					command.extend(["--merge-output-format", "mp4"])
-				elif video_format == "webm":
-					command.extend(["--merge-output-format", "webm"])
+				# Always use MP4 output format for time trimming with additional format enforcement
+				command.extend(["--merge-output-format", "mp4"])
+				command.extend(["--remux-video", "mp4"])
 
 				self.add_audio_quality_option(command)
 
@@ -890,7 +898,11 @@ class CustomWindow(tk.Tk):
 				command.extend(["--download-sections", f"*0-{end_formatted}"])
 		else:
 			# Handle full downloads with codec-aware format selection
-			if not is_audio_download:
+			if is_audio_download:
+				# Standard audio download without time trimming
+				command.extend(["-f", "bestaudio/best", "--extract-audio", "--audio-format", audio_format])
+				self.add_audio_quality_option(command)
+			else:
 				video_format = self.format_var.get()
 				quality_selection = self.quality_var.get()
 				format_str = self.get_video_format_string(video_format, quality_selection)
