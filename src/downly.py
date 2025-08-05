@@ -82,13 +82,18 @@ def get_ffmpeg_path():
 		if os.path.exists(bundled_ffmpeg):
 			return bundled_ffmpeg
 	else:
-		# Development environment - check virtual environment
+		# Development environment - first check binaries folder
+		dev_ffmpeg_binaries = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "binaries", "ffmpeg.exe")
+		if os.path.exists(dev_ffmpeg_binaries):
+			return dev_ffmpeg_binaries
+		
+		# Then check virtual environment
 		dev_ffmpeg = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".venv", "Scripts", "ffmpeg.exe")
 		if os.path.exists(dev_ffmpeg):
 			return dev_ffmpeg
 
 	# Try various subdirectories as fallback
-	for subdir in [".", "bin", "tools", "ffmpeg"]:
+	for subdir in [".", "bin", "tools", "ffmpeg", "binaries"]:
 		possible_path = resource_path(os.path.join(subdir, "ffmpeg.exe"))
 		if os.path.exists(possible_path):
 			return possible_path
