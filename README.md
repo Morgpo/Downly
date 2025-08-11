@@ -20,6 +20,12 @@ A simple, elegant YouTube downloader built with Python, yt-dlp, and tkinter. Dow
 
 *Note: ffmpeg and yt-dlp are bundled - no separate installation required.*
 
+### System Requirements
+- **Windows 10/11** (x64)
+- **Microsoft Visual C++ Redistributable** (2015-2022) - [Download from Microsoft](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist)
+  - Required for the Python runtime and bundled libraries to function properly
+  - Most modern Windows systems already have this installed
+
 ---
 
 ## Developer Checklist
@@ -32,12 +38,11 @@ A simple, elegant YouTube downloader built with Python, yt-dlp, and tkinter. Dow
 - **Time interval latency**: Downloading a specific section of a video will take much longer than excpected
   - *Recommend either downloading the entire video, or only specifying a short section of the video*
   - *Processing adds ~50% of the clip duration to download time (e.g., a 1-hour clip takes an extra 30 minutes)*
-- **Time interval progress**: No progress percentage due to yt-dlp logging limitations
+- **Time interval progress documentation**: No progress percentage due to yt-dlp logging limitations
 - **Format compatibility**: Some quality/format combinations may not be available for all videos
-- **Cross-platform capabilities**: This program was developed for Windows 11. It is not guaranteed to work on other platforms
 
 ## Technical Notes
 - Uses yt-dlp for downloading and ffmpeg for processing
 - PyInstaller for standalone executable creation
 - Inno Setup for installer creation
-- All dependencies are bundled (ffmpeg and yt-dlp) in the installer. Dependencies DO NOT need to be installed seperately on your machine
+- FFMPEG and yt-dlp are bundled with the application

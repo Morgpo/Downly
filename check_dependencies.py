@@ -80,7 +80,7 @@ def main():
     
     # Check Inno Setup (if needed for installer)
     print("\nOptional tools:")
-    issc_path = r"C:\Users\Morgan\Desktop\Coding\InnoSetup\ISCC.exe"
+    issc_path = os.path.expanduser(r"~\Desktop\Coding\InnoSetup\ISCC.exe")
     check_file_exists(issc_path, "Inno Setup Compiler")
     
     # Summary

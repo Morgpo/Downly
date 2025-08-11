@@ -136,6 +136,73 @@ def get_ytdlp_path():
 
 	return None
 
+def validate_dependencies():
+	"""
+	Validate that all required dependencies are available and working.
+	Returns a tuple of (success: bool, error_message: str)
+	"""
+	try:
+		issues = []
+		
+		# Check ffmpeg
+		ffmpeg_path = get_ffmpeg_path()
+		if ffmpeg_path is None:
+			issues.append("ffmpeg executable not found")
+		else:
+			try:
+				if ffmpeg_path == "ffmpeg":
+					result = subprocess.run(["ffmpeg", "-version"], capture_output=True, check=True, timeout=10, text=True)
+				else:
+					if not os.path.exists(ffmpeg_path):
+						issues.append("ffmpeg executable not found at expected location")
+					else:
+						result = subprocess.run([ffmpeg_path, "-version"], capture_output=True, check=True, timeout=10, text=True)
+			except subprocess.CalledProcessError as e:
+				issues.append(f"ffmpeg failed to run (exit code {e.returncode})")
+				if e.stderr:
+					issues.append(f"ffmpeg error: {e.stderr.strip()}")
+			except FileNotFoundError:
+				issues.append("ffmpeg executable cannot be executed (missing dependencies)")
+			except subprocess.TimeoutExpired:
+				issues.append("ffmpeg executable timed out")
+			except Exception as e:
+				issues.append(f"ffmpeg test failed: {str(e)}")
+		
+		# Check yt-dlp
+		ytdlp_path = get_ytdlp_path()
+		if ytdlp_path is None:
+			issues.append("yt-dlp executable not found")
+		else:
+			try:
+				if ytdlp_path == "yt-dlp":
+					result = subprocess.run(["yt-dlp", "--version"], capture_output=True, check=True, timeout=10, text=True)
+				else:
+					if not os.path.exists(ytdlp_path):
+						issues.append("yt-dlp executable not found at expected location")
+					else:
+						result = subprocess.run([ytdlp_path, "--version"], capture_output=True, check=True, timeout=10, text=True)
+			except subprocess.CalledProcessError as e:
+				issues.append(f"yt-dlp failed to run (exit code {e.returncode})")
+				if e.stderr:
+					issues.append(f"yt-dlp error: {e.stderr.strip()}")
+			except FileNotFoundError:
+				issues.append("yt-dlp executable cannot be executed (missing dependencies)")
+			except subprocess.TimeoutExpired:
+				issues.append("yt-dlp executable timed out")
+			except Exception as e:
+				issues.append(f"yt-dlp test failed: {str(e)}")
+		
+		if issues:
+			error_msg = "\n".join([f"• {issue}" for issue in issues])
+			error_msg += "\n\nThis usually indicates missing system dependencies."
+			error_msg += "\nTry installing Microsoft Visual C++ Redistributable if not already installed."
+			return False, error_msg
+		
+		return True, ""
+		
+	except Exception as e:
+		return False, f"Dependency validation failed: {str(e)}"
+
 #
 # ===== Main Application Window ===== #
 #
@@ -765,18 +832,9 @@ class CustomWindow(tk.Tk):
 		ffmpeg_path = get_ffmpeg_path()
 		ytdlp_path = get_ytdlp_path()
 
-		# Check if required executables are available
-		if ytdlp_path is None:
-			self.after(0, lambda: self.download_error("yt-dlp executable not found. Please ensure the application is properly installed."))
-			return
-
-		# Only check if ytdlp_path is a file path (not a command name)
-		if ytdlp_path != "yt-dlp" and not os.path.exists(ytdlp_path):
-			self.after(0, lambda: self.download_error("yt-dlp executable not found. Please ensure the application is properly installed."))
-			return
-
-		if ffmpeg_path is None or not os.path.exists(ffmpeg_path):
-			self.after(0, lambda: self.download_error("ffmpeg executable not found. Please ensure the application is properly installed."))
+		# Dependencies are validated at startup, but do a quick check
+		if ytdlp_path is None or ffmpeg_path is None:
+			self.after(0, lambda: self.download_error("Required dependencies not found. Please restart the application."))
 			return
 
 		# Time interval validation and conversion
@@ -988,16 +1046,39 @@ class CustomWindow(tk.Tk):
 			if self.download_process.returncode == 0:
 				self.after(0, self.download_success)
 			else:
-				self.after(0, lambda: self.download_error(f"Download failed with return code {self.download_process.returncode}"))
+				# Try to get any remaining stderr output for error diagnosis
+				try:
+					stderr_output = ""
+					if hasattr(self.download_process, 'stderr') and self.download_process.stderr:
+						stderr_output = self.download_process.stderr.read()
+					
+					error_msg = f"Download failed with return code {self.download_process.returncode}"
+					if stderr_output:
+						error_msg += f". Error details: {stderr_output.strip()}"
+					
+					self.after(0, lambda: self.download_error(error_msg))
+				except Exception:
+					self.after(0, lambda: self.download_error(f"Download failed with return code {self.download_process.returncode}"))
 
 		except subprocess.CalledProcessError as e:
-			self.after(0, lambda: self.download_error(f"Download failed: {e}"))
-		except FileNotFoundError:
-			self.after(0, lambda: self.download_error("yt-dlp not found. Please ensure yt-dlp is properly installed."))
+			error_msg = f"Download failed (exit code {e.returncode})"
+			if hasattr(e, 'stderr') and e.stderr:
+				error_msg += f": {e.stderr.strip()}"
+			self.after(0, lambda: self.download_error(error_msg))
+		except FileNotFoundError as e:
+			self.after(0, lambda: self.download_error(f"yt-dlp executable not found: {str(e)}"))
 		except Exception as e:
 			self.after(0, lambda: self.download_error(f"Unexpected error: {str(e)}"))
-
-	#
+		
+		# Ensure process cleanup
+		finally:
+			if hasattr(self, 'download_process') and self.download_process:
+				try:
+					if self.download_process.poll() is None:
+						self.download_process.terminate()
+						self.download_process.wait(timeout=5)
+				except Exception:
+					pass
 	# ===== Progress Tracking and UI Updates ===== #
 	#
 
@@ -1147,5 +1228,21 @@ class CustomWindow(tk.Tk):
 #
 
 if __name__ == "__main__":
+	# Validate dependencies before starting the application
+	deps_ok, error_msg = validate_dependencies()
+	if not deps_ok:
+		# Show error message in a simple dialog
+		import tkinter as tk
+		from tkinter import messagebox
+		root = tk.Tk()
+		root.withdraw()  # Hide the main window
+		messagebox.showerror(
+			"Dependency Error", 
+			f"Required dependencies are not available:\n\n{error_msg}\n\n"
+			"Please ensure the application is properly installed or contact support."
+		)
+		root.destroy()
+		sys.exit(1)
+	
 	app = CustomWindow()
 	app.mainloop()

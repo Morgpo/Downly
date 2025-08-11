@@ -1,7 +1,10 @@
+; Enable download support
+#define MyAppVersion "0.3.0"
+
 [Setup]
 ; Basic application information
 AppName=Downly
-AppVersion=1.0.0
+AppVersion={#MyAppVersion}
 AppPublisher=Morgpo
 AppPublisherURL=https://github.com/Morgpo/Downly
 AppSupportURL=https://github.com/Morgpo/Downly/issues
@@ -13,7 +16,7 @@ LicenseFile=
 InfoBeforeFile=
 InfoAfterFile=
 OutputDir=..\installer_output
-OutputBaseFilename=Downly-Setup-v1.0.0
+OutputBaseFilename=Downly-Setup-v{#MyAppVersion}
 SetupIconFile=..\src\assets\icon.ico
 Compression=lzma
 SolidCompression=yes

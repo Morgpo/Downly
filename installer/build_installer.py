@@ -2,17 +2,25 @@ import os
 import sys
 import subprocess
 
-# Update the path to the Inno Setup script
-ISSC_PATH = r"C:\Users\Morgan\Desktop\Coding\InnoSetup\ISCC.exe"
+ISSC_PATH = os.path.expanduser(r"~\Desktop\Coding\InnoSetup\ISCC.exe")
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 DOT_ISS_PATH = os.path.join(script_dir, 'downly_installer.iss')
 
 def build_installer():
-        # Check if Inno Setup compiler exists
+        # Check if Inno Setup compiler was found
+        if not ISSC_PATH:
+                print("Error: Inno Setup compiler (ISCC.exe) not found.")
+                print("Please install Inno Setup or set the correct path.")
+                print("Common installation locations:")
+                print("  - C:\\Program Files (x86)\\Inno Setup 6\\ISCC.exe")
+                print("  - C:\\Program Files\\Inno Setup 6\\ISCC.exe")
+                print("Or set environment variable: INNO_SETUP_PATH")
+                return False
+                
         if not os.path.exists(ISSC_PATH):
                 print(f"Error: Inno Setup compiler not found at: {ISSC_PATH}")
-                print("Please update the ISSC_PATH variable or install Inno Setup.")
+                print("Please verify the path or install Inno Setup.")
                 return False
         
         # Check if ISS file exists
