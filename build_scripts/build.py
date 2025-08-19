@@ -25,7 +25,7 @@ def build():
         icon_path = os.path.join(project_root, 'src', 'assets', 'icon.ico')
         logo_path = os.path.join(project_root, 'src', 'assets', 'logo.png')
         ffmpeg_path = os.path.join(project_root, 'binaries', 'ffmpeg.exe')
-        ytdlp_path = os.path.join(project_root, '.venv', 'Scripts', 'yt-dlp.exe')
+        ytdlp_path = os.path.join(project_root, 'binaries', 'yt-dlp.exe')
         
         missing_files = []
         if not os.path.exists(icon_path):
@@ -44,7 +44,7 @@ def build():
                 if ffmpeg_path in [f.split(": ")[1] for f in missing_files]:
                         print("  Please ensure ffmpeg.exe is in the binaries/ folder")
                 if ytdlp_path in [f.split(": ")[1] for f in missing_files]:
-                        print("  Please ensure yt-dlp is installed: pip install yt-dlp")
+                        print("  Please ensure yt-dlp.exe is in the binaries/ folder")
                 return False
         
         # Define the command to run PyInstaller
@@ -60,7 +60,7 @@ def build():
                 '--add-data', f'src/assets/icon.ico;assets',
                 '--add-data', f'src/assets/logo.png;assets',
                 '--add-binary', f'binaries/ffmpeg.exe;.',
-                '--add-binary', f'.venv/Scripts/yt-dlp.exe;.'
+                '--add-binary', f'binaries/yt-dlp.exe;.'
         ]
 
         # Run the command

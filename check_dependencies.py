@@ -50,7 +50,7 @@ def main():
     pyinstaller_path = project_root / ".venv" / "Scripts" / "pyinstaller.exe"
     all_good &= check_file_exists(pyinstaller_path, "PyInstaller")
     
-    ytdlp_path = project_root / ".venv" / "Scripts" / "yt-dlp.exe"
+    ytdlp_path = project_root / "binaries" / "yt-dlp.exe"
     all_good &= check_file_exists(ytdlp_path, "yt-dlp")
     
     ffmpeg_path = project_root / "binaries" / "ffmpeg.exe"
@@ -94,7 +94,7 @@ def main():
         print("\nQuick setup commands:")
         print("1. Set up virtual environment: python setup/setup_venv.py")
         print("2. Ensure ffmpeg.exe is in binaries/ folder")
-        print("3. Install yt-dlp: .venv/Scripts/pip install yt-dlp")
+        print("3. Ensure yt-dlp.exe is in binaries/ folder")
     
     return all_good
 

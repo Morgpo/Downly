@@ -116,13 +116,18 @@ def get_ytdlp_path():
 		if os.path.exists(bundled_ytdlp):
 			return bundled_ytdlp
 	else:
-		# Development environment - check virtual environment
+		# Development environment - first check binaries folder
+		dev_ytdlp_binaries = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "binaries", "yt-dlp.exe")
+		if os.path.exists(dev_ytdlp_binaries):
+			return dev_ytdlp_binaries
+		
+		# Then check virtual environment as fallback
 		dev_ytdlp = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".venv", "Scripts", "yt-dlp.exe")
 		if os.path.exists(dev_ytdlp):
 			return dev_ytdlp
 
 	# Try to find yt-dlp in various subdirectories
-	for subdir in [".", "bin", "tools", "yt-dlp"]:
+	for subdir in [".", "bin", "tools", "yt-dlp", "binaries"]:
 		possible_path = resource_path(os.path.join(subdir, "yt-dlp.exe"))
 		if os.path.exists(possible_path):
 			return possible_path
