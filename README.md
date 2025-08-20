@@ -14,52 +14,36 @@ A simple, elegant YouTube downloader built with Python, yt-dlp, and tkinter. Dow
 ## Installation & Usage
 
 ### Quick Start
-- **Standalone**: Run `python ./build_scripts/build.py` to create a distributable directory at `./dist/downly/`
-  - The main executable will be at `./dist/downly/downly.exe`
-  - All dependencies (ffmpeg, yt-dlp) are bundled in the directory
-  - Use Inno Setup to create the installer by running `ISCC downly_installer.iss` in the `./installer/` directory
-- **Development**: Run `python ./src/main.py` after activating the virtual environment
+- **Installer**: Download and run the downly_installer from the latest release.
+- **Portable**: Extract the portable version from the latest release .zip file and run `downly.exe`.
+- **Development**: Clone the repository and run `python ./setup/setup_venv.py`. Then activate the virtual environment and run `python ./src/main.py`.
 
-### New Modular Architecture
-This project has been refactored into a clean, modular architecture for better maintainability and extensibility. See [MODULAR_ARCHITECTURE.md](docs/MODULAR_ARCHITECTURE.md) for detailed documentation.
-
-**Key Benefits:**
-- **13 focused modules** replacing the original monolithic 1253-line file
-- **Object-oriented design** with proper encapsulation and separation of concerns
-- **Easier debugging and testing** with isolated components
-- **Extensible architecture** for future enhancements
-
-**Running the Application:**
-```bash
-# From the src directory
-python main.py
-
-# Or test the modular architecture
-python test_modular.py
-```
-
-*Note: ffmpeg and yt-dlp are bundled - no separate installation required.*
-
-### System Requirements
-- **Windows 10/11** (x64)
-- **Microsoft Visual C++ Redistributable** (2015-2022) - [Download from Microsoft](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist)
-  - Required for the Python runtime and bundled libraries to function properly
-  - Most modern Windows systems already have this installed
+*Note: Release builds are stand-alone apps that have yt-dlp and ffmpeg bundled - ffmpeg and yt-dlp.exe standalone will need to be downloaded seperately for development*
 
 ---
 
 ## Developer Checklist
 
+# High Priority
+- [ ] **Make it work**
+- [ ] **.wav support** for audio downloads
+
 ### Low Priority / Polish
 - [ ] **Tooltips** for settings explanations
 - [ ] **Time interval downloads** try to find a workaround for FFMPEG needing to stream the old file to trim it
 
-## Known Issues
-- **Time interval latency**: Downloading a specific section of a video will take much longer than excpected
-  - *Recommend either downloading the entire video, or only specifying a short section of the video*
-  - *Processing adds ~50% of the clip duration to download time (e.g., a 1-hour clip takes an extra 30 minutes)*
-- **Time interval progress documentation**: No progress percentage due to yt-dlp logging limitations
-- **Format compatibility**: Some quality/format combinations may not be available for all videos
+## Limitations & Known Behavior
+
+### Time Interval Downloads (Video Clips)
+- **Processing Time**: Downloading specific sections takes significantly longer than expected
+- **Performance Impact**: Processing adds approximately 50% of the clip duration to download time
+  - *Example: A 1-hour clip requires an additional 30 minutes for processing*
+- **Recommendation**: For best performance, either download the entire video or limit clips to short sections
+- **Progress Tracking**: Limited progress information available during processing due to yt-dlp constraints
+
+### General Limitations
+- **Format Availability**: Not all quality/format combinations are available for every video
+- **Platform Dependency**: Some features may vary based on the source platform's capabilities
 
 ## Technical Notes
 - Uses yt-dlp for downloading and ffmpeg for processing

@@ -62,10 +62,13 @@ def main():
     # Clean build directories if requested
     if args.clean:
         print("\nStep 2: Cleaning build directories...")
-        dist_dir = project_root / "dist"
-        build_dir = project_root / "build"
+        # Clean old directories
+        old_dist_dir = project_root / "dist"
+        old_build_dir = project_root / "build"
+        # Clean new standardized directories
+        build_output_dir = project_root / "build_output"
         
-        for dir_path in [dist_dir, build_dir]:
+        for dir_path in [old_dist_dir, old_build_dir, build_output_dir]:
             if dir_path.exists():
                 try:
                     import shutil
@@ -82,13 +85,13 @@ def main():
         print("\n✗ Application build failed. Cannot proceed to installer.")
         return False
     
-    # Check if dist directory was created
-    dist_exe = project_root / "dist" / "downly" / "downly.exe"
-    if not dist_exe.exists():
-        print(f"✗ Expected executable not found at {dist_exe}")
+    # Check if build_output directory was created
+    portable_exe = project_root / "build_output" / "portable" / "downly" / "downly.exe"
+    if not portable_exe.exists():
+        print(f"✗ Expected executable not found at {portable_exe}")
         return False
     
-    print(f"✓ Application built successfully at {dist_exe}")
+    print(f"✓ Application built successfully at {portable_exe}")
     
     # Build installer if requested
     if args.installer:
@@ -97,7 +100,7 @@ def main():
         installer_success = run_command([sys.executable, str(project_root / "scripts" / "installer" / "build_installer.py")], "Installer build")
         
         if installer_success:
-            installer_output = project_root / "scripts" / "installer" / "output"
+            installer_output = project_root / "build_output" / "installer"
             if installer_output.exists():
                 installer_files = list(installer_output.glob("*.exe"))
                 if installer_files:
@@ -111,10 +114,10 @@ def main():
     # Summary
     print("\n" + "=" * 40)
     print("✓ Build process completed successfully!")
-    print(f"Application: {dist_exe}")
+    print(f"Application: {portable_exe}")
     
     if args.installer:
-        installer_output = project_root / "scripts" / "installer" / "output"
+        installer_output = project_root / "build_output" / "installer"
         installer_files = list(installer_output.glob("*.exe"))
         if installer_files:
             print(f"Installer: {installer_files[0]}")

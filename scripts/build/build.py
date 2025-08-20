@@ -6,6 +6,13 @@ def build():
         script_dir = os.path.dirname(os.path.abspath(__file__))
         project_root = os.path.dirname(os.path.dirname(script_dir))
         
+        # Define standardized build output directories
+        build_output_dir = os.path.join(project_root, 'build_output')
+        portable_output_dir = os.path.join(build_output_dir, 'portable')
+        
+        # Create build output directories if they don't exist
+        os.makedirs(portable_output_dir, exist_ok=True)
+        
         # Use the virtual environment's PyInstaller
         pyinstaller_path = os.path.join(project_root, '.venv', 'Scripts', 'pyinstaller.exe')
         
@@ -56,6 +63,8 @@ def build():
                 '--noconfirm',
                 '--icon=src/assets/icon.ico',
                 '--name=downly',
+                '--distpath', portable_output_dir,  # Output to standardized portable directory
+                '--workpath', os.path.join(project_root, 'build'),  # Keep build artifacts in build/
                 'src/main.py',
                 # Add additional data files and binaries
                 '--add-data', f'src/assets/icon.ico;assets',

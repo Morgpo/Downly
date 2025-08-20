@@ -28,12 +28,17 @@ def build_installer():
                 print(f"Error: ISS file not found at: {DOT_ISS_PATH}")
                 return False
         
-        # Check if dist directory exists
-        dist_path = os.path.join(os.path.dirname(os.path.dirname(script_dir)), 'dist', 'downly')
-        if not os.path.exists(dist_path):
-                print(f"Error: Built application not found at: {dist_path}")
+        # Check if build_output directory exists
+        project_root = os.path.dirname(os.path.dirname(script_dir))
+        portable_path = os.path.join(project_root, 'build_output', 'portable', 'downly')
+        if not os.path.exists(portable_path):
+                print(f"Error: Built application not found at: {portable_path}")
                 print("Please run the build script first to create the application.")
                 return False
+        
+        # Create installer output directory if it doesn't exist
+        installer_output_dir = os.path.join(project_root, 'build_output', 'installer')
+        os.makedirs(installer_output_dir, exist_ok=True)
         
         # Define the command to run Inno Setup
         command = [

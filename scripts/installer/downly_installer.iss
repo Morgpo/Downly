@@ -15,7 +15,7 @@ AllowNoIcons=yes
 LicenseFile=
 InfoBeforeFile=
 InfoAfterFile=
-OutputDir=output
+OutputDir=..\..\build_output\installer
 OutputBaseFilename=Downly-Setup-v{#MyAppVersion}
 SetupIconFile=..\..\src\assets\icon.ico
 Compression=lzma
@@ -41,8 +41,8 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 Name: "quicklaunchicon"; Description: "{cm:CreateQuickLaunchIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked; OnlyBelowVersion: 0,6.1
 
 [Files]
-; Include the entire dist/downly directory
-Source: "..\..\dist\downly\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+; Include the entire build_output/portable/downly directory
+Source: "..\..\build_output\portable\downly\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 ; Include README and other documentation
 Source: "..\..\README.md"; DestDir: "{app}"; Flags: ignoreversion
 ; Include icon for shortcuts
