@@ -2,6 +2,7 @@
 /build/
 /dist/
 /installer_output/
+*/__pycache__/
 
 downly.spec
 /binaries/ffmpeg.exe

@@ -12,11 +12,31 @@ A simple, elegant YouTube downloader built with Python, yt-dlp, and tkinter. Dow
 - Able to download subtitles and metadata
 
 ## Installation & Usage
+
+### Quick Start
 - **Standalone**: Run `python ./build_scripts/build.py` to create a distributable directory at `./dist/downly/`
   - The main executable will be at `./dist/downly/downly.exe`
   - All dependencies (ffmpeg, yt-dlp) are bundled in the directory
   - Use Inno Setup to create the installer by running `ISCC downly_installer.iss` in the `./installer/` directory
-- **Development**: Run `python ./src/downly.py` after activating the virtual environment
+- **Development**: Run `python ./src/main.py` after activating the virtual environment
+
+### New Modular Architecture
+This project has been refactored into a clean, modular architecture for better maintainability and extensibility. See [MODULAR_ARCHITECTURE.md](docs/MODULAR_ARCHITECTURE.md) for detailed documentation.
+
+**Key Benefits:**
+- **13 focused modules** replacing the original monolithic 1253-line file
+- **Object-oriented design** with proper encapsulation and separation of concerns
+- **Easier debugging and testing** with isolated components
+- **Extensible architecture** for future enhancements
+
+**Running the Application:**
+```bash
+# From the src directory
+python main.py
+
+# Or test the modular architecture
+python test_modular.py
+```
 
 *Note: ffmpeg and yt-dlp are bundled - no separate installation required.*
 
