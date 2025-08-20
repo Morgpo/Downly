@@ -376,6 +376,8 @@ class DownloadEngine:
                 command.extend(["-f", format_str])
                 command.extend(["--merge-output-format", "mp4"])
                 command.extend(["--remux-video", "mp4"])
+                # Ensure AAC audio for MP4 compatibility
+                command.extend(["--postprocessor-args", "ffmpeg:-c:a aac -b:a 192k"])
                 self._add_audio_quality_option(command, settings.audio_quality)
             
             # Add download sections
@@ -386,17 +388,39 @@ class DownloadEngine:
                 command.extend(["-f", "bestaudio/best", "--extract-audio", "--audio-format", settings.format])
                 self._add_audio_quality_option(command, settings.audio_quality)
             else:
-                format_str = self._get_video_format_string(settings.format, settings.video_quality)
-                command.extend(["-f", format_str])
-                
-                # Add format-specific merging options
-                if settings.format == "mp4":
-                    command.extend(["--merge-output-format", "mp4"])
-                    command.extend(["--remux-video", "mp4"])
-                elif settings.format == "webm":
-                    command.extend(["--merge-output-format", "webm"])
-                    # Add webm-specific flags for better compatibility
-                    command.extend(["--postprocessor-args", "ffmpeg:-c:v libvpx-vp9 -c:a libopus"])
+                # Use simplified format selection for video downloads
+                if settings.video_quality == "Highest Video Quality":
+                    # Use format selection that ensures codec compatibility
+                    if settings.format == "mp4":
+                        # For MP4, prefer AAC audio for better compatibility
+                        command.extend(["-f", "bestvideo*[ext=mp4]+bestaudio[ext=m4a]/bestvideo*+bestaudio[ext=m4a]/bestvideo*+bestaudio/best"])
+                        command.extend(["--merge-output-format", "mp4"])
+                        command.extend(["--remux-video", "mp4"])
+                        # Ensure AAC audio for MP4 compatibility
+                        command.extend(["--postprocessor-args", "ffmpeg:-c:a aac -b:a 192k"])
+                    elif settings.format == "webm":
+                        # For WebM, Opus audio is fine
+                        command.extend(["-f", "bestvideo*+bestaudio/best"])
+                        command.extend(["--merge-output-format", "webm"])
+                    else:
+                        # For other formats, let yt-dlp choose the best completely
+                        # Don't specify -f at all to use yt-dlp's default behavior
+                        pass
+                else:
+                    # Use specific quality selection for non-highest quality
+                    format_str = self._get_video_format_string(settings.format, settings.video_quality)
+                    command.extend(["-f", format_str])
+                    
+                    # Add format-specific merging options
+                    if settings.format == "mp4":
+                        command.extend(["--merge-output-format", "mp4"])
+                        command.extend(["--remux-video", "mp4"])
+                        # Ensure AAC audio for MP4 compatibility
+                        command.extend(["--postprocessor-args", "ffmpeg:-c:a aac -b:a 192k"])
+                    elif settings.format == "webm":
+                        command.extend(["--merge-output-format", "webm"])
+                        # Add webm-specific flags for better compatibility
+                        command.extend(["--postprocessor-args", "ffmpeg:-c:v libvpx-vp9 -c:a libopus"])
                 
                 self._add_audio_quality_option(command, settings.audio_quality)
     
@@ -423,36 +447,34 @@ class DownloadEngine:
     def _get_time_section_format_string(self, video_format: str, quality_selection: str) -> str:
         """Generate optimized format string for time-sectioned downloads."""
         if quality_selection == "Highest Video Quality":
+            # Use codec-compatible format selection for time sections
             if video_format == "mp4":
-                return "best[ext=mp4][vcodec^=avc]/best[ext=mp4]/bestvideo[ext=mp4][vcodec^=avc]+bestaudio[ext=m4a]/bestvideo[ext=mp4]+bestaudio[ext=m4a]"
-            elif video_format == "webm":
-                return "best[ext=webm][acodec^=vorbis]/bestvideo[ext=webm]+bestaudio[ext=webm]/bestvideo+bestaudio/best"
+                return "bestvideo*[ext=mp4]+bestaudio[ext=m4a]/bestvideo*+bestaudio[ext=m4a]/bestvideo*+bestaudio/best"
             else:
-                return "bestvideo+bestaudio/best"
+                return "bestvideo*+bestaudio/best"
         else:
             height = quality_selection.replace('p', '')
             if video_format == "mp4":
-                return f"best[height<={height}][ext=mp4][vcodec^=avc]/best[height<={height}][ext=mp4]/bestvideo[height<={height}][ext=mp4][vcodec^=avc]+bestaudio[ext=m4a]/bestvideo[height<={height}][ext=mp4]+bestaudio[ext=m4a]"
-            elif video_format == "webm":
-                return f"best[height<={height}][ext=webm][acodec^=vorbis]/bestvideo[height<={height}][ext=webm]+bestaudio[ext=webm]/bestvideo[height<={height}]+bestaudio/best[height<={height}]"
+                return f"bestvideo[height<={height}][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<={height}]+bestaudio[ext=m4a]/bestvideo[height<={height}]+bestaudio/best[height<={height}]"
             else:
                 return f"bestvideo[height<={height}]+bestaudio/best[height<={height}]"
     
     def _get_video_format_string(self, video_format: str, quality_selection: str) -> str:
         """Generate format string for standard video downloads."""
         if quality_selection == "Highest Video Quality":
+            # Use codec-aware format selection for better compatibility
             if video_format == "mp4":
-                return "bestvideo[ext=mp4][vcodec^=avc1]+bestaudio[ext=m4a][acodec^=mp4a]/bestvideo[ext=mp4]+bestaudio[ext=m4a]/bestvideo+bestaudio/best"
+                return "bestvideo*[ext=mp4]+bestaudio[ext=m4a]/bestvideo*+bestaudio[ext=m4a]/bestvideo*+bestaudio/best"
             elif video_format == "webm":
-                return "bestvideo[ext=webm][vcodec^=vp9]+bestaudio[ext=webm][acodec^=opus]/bestvideo[ext=webm]+bestaudio[ext=webm]/bestvideo+bestaudio/best"
+                return "bestvideo*+bestaudio/best"
             else:
-                return "bestvideo+bestaudio/best"
+                return "bestvideo*+bestaudio/best"
         else:
             height = quality_selection.replace('p', '')
             if video_format == "mp4":
-                return f"bestvideo[height<={height}][ext=mp4][vcodec^=avc1]+bestaudio[ext=m4a][acodec^=mp4a]/bestvideo[height<={height}][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<={height}]+bestaudio/best[height<={height}]"
+                return f"bestvideo[height<={height}][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<={height}]+bestaudio[ext=m4a]/bestvideo[height<={height}]+bestaudio/best[height<={height}]"
             elif video_format == "webm":
-                return f"bestvideo[height<={height}][ext=webm][vcodec^=vp9]+bestaudio[ext=webm][acodec^=opus]/bestvideo[height<={height}][ext=webm]+bestaudio[ext=webm]/bestvideo[height<={height}]+bestaudio/best[height<={height}]"
+                return f"bestvideo[height<={height}]+bestaudio/best[height<={height}]"
             else:
                 return f"bestvideo[height<={height}]+bestaudio/best[height<={height}]"
     

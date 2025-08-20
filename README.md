@@ -25,7 +25,6 @@ A simple, elegant YouTube downloader built with Python, yt-dlp, and tkinter. Dow
 ## Developer Checklist
 
 # High Priority
-- [ ] **Make it work**
 - [ ] **.wav support** for audio downloads
 
 ### Low Priority / Polish
@@ -50,3 +49,4 @@ A simple, elegant YouTube downloader built with Python, yt-dlp, and tkinter. Dow
 - PyInstaller for standalone executable creation
 - Inno Setup for installer creation
 - FFMPEG and yt-dlp are bundled with the application
+- Find  yt-dlp standalone releases [here](https://github.com/yt-dlp/yt-dlp/releases).
